@@ -6,7 +6,7 @@ from sentence_transformers import SentenceTransformer
 from pypdf import PdfReader
 
 
-# ---------------- LOAD EMBEDDING MODEL (CACHED) ---------------- #
+
 @st.cache_resource
 def load_embedding_model():
     """
@@ -19,7 +19,7 @@ def load_embedding_model():
 model = load_embedding_model()
 
 
-# ---------------- TEXT CLEANING ---------------- #
+
 def clean_text(text: str) -> str:
     """
     Clean unwanted parts from PDF text.
@@ -44,7 +44,7 @@ def clean_text(text: str) -> str:
     return text.strip()
 
 
-# ---------------- PDF EXTRACTION ---------------- #
+
 def extract_text_from_pdf(uploaded_file):
     """
     Extract cleaned text page-wise from uploaded PDF.
@@ -74,7 +74,7 @@ def extract_text_from_pdf(uploaded_file):
     return pages
 
 
-# ---------------- CHUNKING ---------------- #
+
 def chunk_text(pages, chunk_size=350):
     """
     Split pages into manageable chunks.
@@ -101,7 +101,7 @@ def chunk_text(pages, chunk_size=350):
     return chunks
 
 
-# ---------------- VECTOR STORE CREATION ---------------- #
+
 def create_vector_store(chunks):
     """
     Create FAISS index from chunk embeddings.
@@ -123,7 +123,7 @@ def create_vector_store(chunks):
     return index
 
 
-# ---------------- RETRIEVAL ---------------- #
+
 def retrieve_relevant_chunks(query, index, chunks, top_k=3):
     """
     Retrieve top-k most relevant chunks for a query.
