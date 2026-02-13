@@ -13,7 +13,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------------- SESSION STATE ---------------- #
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -27,7 +26,6 @@ if "paper_uploaded" not in st.session_state:
     st.session_state.paper_uploaded = False
 
 
-# ---------------- SIDEBAR ---------------- #
 with st.sidebar:
     st.title("📂 Paper Settings")
 
@@ -53,7 +51,7 @@ with st.sidebar:
 
     st.divider()
 
-    # ---------------- MEDIUM SUMMARY BUTTON ---------------- #
+
     if st.button("📄 Generate Summary for the paper"):
 
         if not st.session_state.paper_uploaded:
@@ -106,7 +104,7 @@ Paper Content:
         st.rerun()
 
 
-# ---------------- MAIN CHAT ---------------- #
+
 st.title("📘 Intelligent AI Research Tutor")
 st.caption("Grounded AI assistant for understanding research papers.")
 
@@ -115,7 +113,7 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 
-# ---------------- CHAT INPUT ---------------- #
+
 if prompt := st.chat_input("Ask something about the paper..."):
 
     if not st.session_state.paper_uploaded:
