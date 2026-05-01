@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/Streamlit-1.36+-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" />
   <img src="https://img.shields.io/badge/FAISS-Vector_Search-0467DF?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/OpenRouter-LLM_API-6366F1?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Google_Gemini-2.5_Flash-8E8E8E?style=for-the-badge&logo=google" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" />
 </p>
 
@@ -46,15 +46,15 @@
 |---|---|
 | **PDF Upload & Parsing** | Upload any academic PDF. Text is extracted page-by-page using `pypdf`, cleaned of references/URLs/DOIs, and split into semantically meaningful chunks. |
 | **AI-Powered Summaries** | Generate structured summaries covering Research Problem, Methodology, Key Results, Contributions, and Limitations — all grounded strictly in the paper content. |
-| **RAG-Powered Q&A Chat** | Ask natural-language questions about your paper. The system retrieves the top-3 most relevant chunks via FAISS semantic search, then generates a grounded answer using GPT-4o-mini. |
-| **Source Attribution** | Every AI response includes collapsible "Retrieved Context Chunks" showing exactly which sections of the paper were used, with page numbers and relevance rankings. |
+| **RAG-Powered Q&A Chat** | Ask natural-language questions about your paper. The system retrieves the top-k most relevant chunks via FAISS semantic search, then generates a grounded answer using Google Gemini 2.5 Flash. |
+| **Source Attribution** | Every AI response includes the page number from which context was retrieved, showing exactly which sections of the paper were used. |
 | **Session Persistence** | Your chat history, uploaded paper state, and vector index persist across Streamlit reruns within the same session. |
 
 ### 📊 Multi-Paper Comparison (Compare Papers Tab)
 | Feature | Description |
 |---|---|
 | **Side-by-Side Upload** | Upload two research PDFs simultaneously with a clean Paper A vs Paper B interface. |
-| **Structured Comparison Report** | Automatically generates a 6-section academic comparison: Research Problem, Methodology, Results & Evaluation, Contributions, Limitations, and Overall Summary. |
+| **Structured Comparison Report** | Automatically generates an academic comparison covering key aspects of both papers. |
 | **Individual Summaries** | Each paper's full structured summary is available in collapsible expanders for reference. |
 | **Paper Metadata Cards** | Visual cards showing filename, page count, and chunk count for each paper. |
 
@@ -63,7 +63,7 @@
 |---|---|
 | **3-Tier Pricing** | Starter (₹299/mo), Pro Researcher (₹799/mo), and Elite Scholar (₹1499/mo) with distinct feature sets. |
 | **Dynamic Billing Toggle** | Pure CSS-powered Monthly ↔ Yearly toggle with instant 20% discount preview — no JavaScript required. |
-| **Simulated Checkout** | Click any plan's CTA → a checkout modal appears → click "Pay Now" → plan is activated in session state. |
+| **Simulated Checkout** | Click any plan's CTA → a checkout modal appears → click "Pay Now" ��� plan is activated in session state. |
 | **Dynamic Plan State** | After purchasing, the active plan's button changes to "Current Plan" (greyed out) across the pricing UI. |
 
 ---
@@ -91,8 +91,8 @@
 │  └───────────────┬───────────────┘                           │
 │                  │                                            │
 │  ┌───────────────▼───────────────┐                           │
-│  │   OpenRouter LLM API          │                           │
-│  │   (GPT-4o-mini via REST)      │                           │
+│  │   Google Gemini API          │                           │
+│  │   (Gemini 2.5 Flash)       │                           │
 │  └───────────────────────────────┘                           │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -116,14 +116,14 @@
 │                              # - FAISS indexing & semantic retrieval
 │
 ├── 📄 openrouter_llm.py       # LLM integration layer
-│                              # - OpenRouter API client
-│                              # - GPT-4o-mini model configuration
+│                              # - Google Gemini API client
+│                              # - Gemini 2.5 Flash model configuration
 │                              # - System prompt for academic responses
 │
-├── 📄 compare_papers.py       # Multi-paper comparison module
+├���─ ���� compare_papers.py       # Multi-paper comparison module
 │                              # - Dual PDF upload UI
 │                              # - Parallel summarization pipeline
-│                              # - 6-section structured comparison
+│                              # - Structured comparison report
 │
 ├── 📄 pricing_plans.py        # Pricing UI generator
 │                              # - Dynamic HTML for 3 subscription tiers
@@ -154,7 +154,7 @@
 | **PDF Parsing** | pypdf | Extract text content page-by-page from uploaded PDFs |
 | **Embeddings** | sentence-transformers (`all-MiniLM-L6-v2`) | Convert text chunks into 384-dimensional semantic vectors |
 | **Vector Search** | FAISS (faiss-cpu) | Blazing-fast approximate nearest neighbor search for chunk retrieval |
-| **LLM** | OpenRouter API → GPT-4o-mini | Generate structured summaries, answer questions, and compare papers |
+| **LLM** | Google Gemini API → Gemini 2.5 Flash | Generate structured summaries, answer questions, and compare papers |
 | **Styling** | Custom CSS | Premium dark-mode glassmorphism theme with responsive design |
 | **Environment** | python-dotenv | Secure API key management via `.env` file |
 
@@ -165,7 +165,7 @@
 ### Prerequisites
 
 - **Python 3.10+** installed on your system
-- An **OpenRouter API key** (get one free at [openrouter.ai](https://openrouter.ai))
+- A **Google Gemini API key** (get one at [Google AI Studio](https://aistudio.google.com/app/apikey))
 
 ### Installation
 
@@ -196,7 +196,7 @@
 Create a `.env` file in the project root (or edit the existing one):
 
 ```env
-OPENROUTER_API_KEY=sk-or-v1-your-api-key-here
+GEMINI_API_KEY=your-gemini-api-key-here
 ```
 
 > ⚠️ **Important:** Never commit your `.env` file to version control. It is already included in `.gitignore`.
@@ -237,8 +237,7 @@ The app will launch at **http://localhost:8501** in your default browser.
    - *"What methodology did the authors use?"*
    - *"Explain the main findings in simple terms."*
    - *"What are the limitations of this study?"*
-2. The system performs semantic search across all chunks, retrieves the top-3 most relevant, and generates a grounded answer.
-3. Click **"View Retrieved Context Chunks"** to see exactly which paper sections were used.
+2. The system performs semantic search across all chunks, retrieves the most relevant chunk, and generates a grounded answer.
 
 ### 4. Compare Two Papers
 
@@ -246,7 +245,7 @@ The app will launch at **http://localhost:8501** in your default browser.
 2. Upload **Paper A** and **Paper B** using the side-by-side uploaders.
 3. Click **"Compare Papers"** — the system will:
    - Summarize each paper independently
-   - Generate a 6-section structured comparison report
+   - Generate a structured comparison report
 4. Expand individual summaries for deeper reference.
 
 ### 5. View Pricing Plans
@@ -311,21 +310,21 @@ User asks a question
        │
        ▼
 ┌──────────────────┐
-│  5. RETRIEVE      │  Encode query → search FAISS → top-3 chunks
+│  5. RETRIEVE      │  Encode query → search FAISS → top-k chunks
 │     Chunks        │  returned with page numbers & distances
 └──────┬───────────┘
        │
        ▼
 ┌──────────────────┐
 │  6. GENERATE      │  Chunks become context in the prompt
-│     Answer        │  GPT-4o-mini generates grounded response
+│     Answer        │  Gemini 2.5 Flash generates grounded response
 └──────────────────┘
 ```
 
 **Key Design Decisions:**
 - **Chunk size of 350 words** balances semantic completeness with embedding quality
 - **L2 distance** (Euclidean) is used for FAISS similarity — lower is more similar
-- **Top-3 retrieval** provides sufficient context without overwhelming the LLM context window
+- **Top-1 retrieval** for chat (or top-3 for summaries) provides sufficient context without overwhelming the LLM context window
 - **Chunk truncation at 800 chars** prevents excessively long context from consuming tokens
 - **Temperature 0.3** keeps responses factual and conservative
 
@@ -350,7 +349,7 @@ The application features a **premium dark-mode interface** built with custom CSS
 ### `rag_pipeline.py`
 
 | Function | Parameters | Returns | Description |
-|---|---|---|---|
+|---|---|---|---|---|
 | `extract_text_from_pdf(uploaded_file)` | Streamlit `UploadedFile` | `list[dict]` with `page_number` and `text` | Extracts and cleans text from each PDF page |
 | `chunk_text(pages, chunk_size=350)` | List of page dicts, optional chunk size | `list[dict]` with `page_number` and `content` | Splits page text into overlapping chunks |
 | `create_vector_store(chunks)` | List of chunk dicts | `faiss.IndexFlatL2` | Creates FAISS index from chunk embeddings |
@@ -359,13 +358,13 @@ The application features a **premium dark-mode interface** built with custom CSS
 ### `openrouter_llm.py`
 
 | Function | Parameters | Returns | Description |
-|---|---|---|---|
-| `generate_response(prompt, max_tokens=600)` | Prompt string, optional token limit | `str` | Sends prompt to GPT-4o-mini via OpenRouter and returns the response |
+|---|---|---|---|---|
+| `generate_response(prompt, max_tokens=300)` | Prompt string, optional token limit | `str` | Sends prompt to Gemini 2.5 Flash and returns the response |
 
 ### `pricing_plans.py`
 
 | Function | Parameters | Returns | Description |
-|---|---|---|---|
+|---|---|---|---|---|
 | `get_pricing_html(active_plan="free")` | Current active plan ID | `str` (HTML) | Returns the full pricing grid HTML with dynamic button states |
 
 ---
@@ -395,5 +394,5 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ---
 
 <p align="center">
-  Built with ❤️ using Streamlit, FAISS, and OpenRouter
+  Built with ❤️ using Streamlit, FAISS, and Google Gemini
 </p>

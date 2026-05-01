@@ -88,49 +88,27 @@ if "checkout" in st.query_params:
 
 # Prompt builders
 def build_summary_prompt(full_text: str) -> str:
-    """Returns a structured summary prompt for the given paper text."""
-    return f"""
-You are an academic research assistant.
+    """
+    Build a comprehensive summary prompt for research papers.
+    Includes more text content and asks for detailed sections.
+    """
+    return f"""You are an academic research paper analyzer. Provide a comprehensive and detailed summary of the following research paper.
 
-Based strictly on the following research paper content,
-generate a detailed structured summary.
+Instructions:
+1. Research Problem: Clearly state the main research problem or question being addressed. Explain why this problem is important and what gap it fills in the existing literature.
+2. Methodology: Describe in detail the research methods, approaches, and techniques used to solve the problem. Include information about the dataset, experimental setup, algorithms, or theoretical framework.
+3. Key Findings: Summarize the major results and contributions. Include specific numbers, metrics, or comparisons if available.
+4. Implications: Discuss the broader implications of the findings and potential applications.
+5. Limitations: Note any limitations or weaknesses identified in the study.
+6. Conclusion: Provide a brief conclusion and future work suggestions.
 
-Include:
-1. Research Problem (2-3 paragraphs)
-2. Proposed Methodology (2-3 paragraphs)
-3. Key Results and Findings (2-3 paragraphs)
-4. Main Contributions (bullet points with explanation)
-5. Limitations and Future Work (1-2 paragraphs)
+Paper content:
+{full_text[:5000]}
 
-Make it medium-length (approximately 400-500 words).
-Do not add information not present in the content.
-
-Paper Content:
-{full_text}
-"""
+Please provide a thorough, well-structured summary covering all the sections above."""
 
 def build_rag_prompt(context: str, question: str) -> str:
-    """Returns a RAG prompt with intent classification instructions."""
-    return f"""
-You are an Intelligent Research Assistant.
-
-RESEARCH PAPER CONTEXT:
-{context}
-
-USER QUESTION:
-{question}
-
-INSTRUCTIONS:
-1. Determine if the question is a general greeting/question or specifically about the research paper context provided.
-2. If it is a greeting or general question NOT related to the research paper, answer politely and briefly. DO NOT mention the paper.
-3. If it is about the research paper, provide a detailed academic answer strictly based on the provided context.
-4. CRITICAL: You MUST start your response with exactly one of these two tags:
-   [GENERAL] - For greetings or general questions.
-   [RESEARCH] - For questions answered using the research paper context.
-
-Response:
-"""
-
+    return f"Context: {context}\n\nQuestion: {question}\n\nAnswer based on context:"
 
 
 # Sidebar
@@ -223,21 +201,20 @@ with st.sidebar:
         if not st.session_state.paper_uploaded:
             st.warning("⚠️ Upload a paper first.")
         else:
-            with st.spinner("Generating structured summary..."):
+            with st.spinner("Generating summary..."):
+                # Use more chunks for comprehensive content (up to 5 chunks)
                 full_text = " ".join(
                     chunk["content"]
-                    for chunk in st.session_state.chunks[:20]
+                    for chunk in st.session_state.chunks[:5]
                 )
-                prompt   = build_summary_prompt(full_text)
-                summary  = generate_response(prompt, max_tokens=1200)
-                response = "## 📄 Structured Paper Summary\n\n" + summary
+                prompt = build_summary_prompt(full_text)
+                summary = generate_response(prompt, max_tokens=1500)
+                response = "## 📄 Paper Summary\n\n" + summary
 
                 st.session_state.messages.append(
                     {"role": "assistant", "content": response}
                 )
             st.success("Summary added to chat!")
-
-
 
     if st.button("🗑️ Clear Chat", use_container_width=True):
         st.session_state.messages = []
@@ -251,9 +228,7 @@ with st.sidebar:
             <b style="color:#94a3b8">Tips</b><br>
             • Upload any academic PDF<br>
             • Ask conceptual questions<br>
-            • Request methodology breakdowns<br>
-            • Ask for result explanations<br>
-            • Use <b style="color:#94a3b8">Compare Papers</b> tab for multi-paper analysis
+            • Use <b style="color:#94a3b8">Compare Papers</b> tab
         </div>
     """, unsafe_allow_html=True)
 
@@ -288,15 +263,12 @@ if app_mode == "Research Tutor":
             <p>Upload any research paper and have a deep academic conversation powered by RAG + LLM.</p>
             <div class="feature-pills">
                 <span class="pill">RAG-Grounded</span>
-                <span class="pill">Semantic Search</span>
-                <span class="pill">Auto Summary</span>
-                <span class="pill">Chat Interface</span>
                 <span class="pill">{status_pill}</span>
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-    # Create a dedicated container for chat history (height adapts dynamically)
+    # Create a dedicated container for chat history
     chat_container = st.container(border=False)
 
     # Show placeholder when no messages exist
@@ -325,53 +297,27 @@ if app_mode == "Research Tutor":
         with chat_container.chat_message("user"):
             st.markdown(prompt)
 
-        # Retrieve top-3 relevant chunks via semantic search
+        # Retrieve top-1 relevant chunk only (for token limits)
         retrieved = retrieve_relevant_chunks(
             query=prompt,
             index=st.session_state.vector_store,
             chunks=st.session_state.chunks,
-            top_k=3,
+            top_k=1,
         )
 
-        context = "\n\n".join(
-            f"(Page {item['page_number']}) {item['content']}"
-            for item in retrieved
-        )
+        # Limit context to 400 chars
+        context = f"Page {retrieved[0]['page_number']}: {retrieved[0]['content'][:400]}"
 
         rag_prompt = build_rag_prompt(context, prompt)
 
         with chat_container.chat_message("assistant"):
             with st.spinner("Thinking..."):
-                response = generate_response(rag_prompt, max_tokens=500)
-            
-            # Parse the intent tag
-            is_research = response.startswith("[RESEARCH]")
-            # Remove the tags for a clean display
-            clean_response = response.replace("[RESEARCH]", "").replace("[GENERAL]", "").strip()
-            st.markdown(clean_response)
+                response = generate_response(rag_prompt, max_tokens=100)
+            st.markdown(response)
 
-        st.session_state.messages.append({"role": "assistant", "content": clean_response})
-
-        # Show source chunks ONLY if the answer was research-based
-        if is_research:
-            with chat_container.expander("View Retrieved Context Chunks"):
-                for i, item in enumerate(retrieved):
-                    col_badge, col_text = st.columns([1, 8])
-
-                    with col_badge:
-                        st.markdown(f"""
-                            <div class="chunk-badge">
-                                Rank {item['rank']}<br>Page {item['page_number']}
-                            </div>
-                        """, unsafe_allow_html=True)
-
-                    with col_text:
-                        st.markdown(item["content"])
-
-                    if i < len(retrieved) - 1:
-                        st.markdown("---")
+        st.session_state.messages.append({"role": "assistant", "content": response})
 
 
-# Tab 2: comparison — all logic in compare_papers.py
+# Tab 2: comparison
 elif app_mode == "Compare Papers":
     render_compare_tab()

@@ -1,49 +1,47 @@
 import os
-import requests
+import google.generativeai as genai
 from dotenv import load_dotenv
 
 load_dotenv()
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# Configure the Gemini API
+genai.configure(api_key=GEMINI_API_KEY)
 
 
-def generate_response(prompt, max_tokens=600):
+def generate_response(prompt, max_tokens=300):
     """
-    Generic response generator.
+    Generic response generator using Gemini 2.5 Flash (free model).
     max_tokens can be adjusted for longer summaries.
     """
 
-    url = "https://openrouter.ai/api/v1/chat/completions"
+    # Set up the model - using Gemini 2.5 Flash (free model)
+    model = genai.GenerativeModel(
+        model_name="gemini-2.5-flash",
+        system_instruction=(
+            "You are an academic AI research assistant.\n"
+            "Provide clear, structured, comprehensive explanations.\n"
+            "Do not hallucinate information.\n"
+            "Base responses only on provided context."
+        )
+    )
 
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json"
-    }
-
-    data = {
-        "model": "openai/gpt-4o-mini",
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You are an academic AI research assistant.\n"
-                    "Provide clear, structured, medium-length explanations.\n"
-                    "Do not hallucinate information.\n"
-                    "Base responses only on provided context."
-                )
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        "temperature": 0.3,
-        "max_tokens": max_tokens
-    }
-
-    response = requests.post(url, headers=headers, json=data)
-
-    if response.status_code != 200:
-        return f"Error: {response.text}"
-
-    return response.json()["choices"][0]["message"]["content"]
+    # Generate content
+    try:
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.3,
+                max_output_tokens=max_tokens
+            )
+        )
+        
+        # Check if response has valid content
+        if response.candidates:
+            return response.text
+        else:
+            return "Error: No response generated. The request may have been blocked by safety filters."
+            
+    except Exception as e:
+        return f"Error: {str(e)}"

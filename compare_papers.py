@@ -10,63 +10,31 @@ from rag_pipeline import extract_text_from_pdf, chunk_text
 from openrouter_llm import generate_response
 
 
-# Prompt: structured summary for a single paper
+# Prompt: summary with structure
 def _build_summary_prompt(full_text: str) -> str:
-    return f"""
-You are an academic research assistant.
+    """
+    Build a comprehensive summary prompt for research papers.
+    Includes more text content and asks for detailed sections.
+    """
+    return f"""You are an academic research paper analyzer. Provide a comprehensive and detailed summary of the following research paper.
 
-Based strictly on the following research paper content,
-generate a detailed structured summary.
+Instructions:
+1. Research Problem: Clearly state the main research problem or question being addressed. Explain why this problem is important and what gap it fills in the existing literature.
+2. Methodology: Describe in detail the research methods, approaches, and techniques used to solve the problem. Include information about the dataset, experimental setup, algorithms, or theoretical framework.
+3. Key Findings: Summarize the major results and contributions. Include specific numbers, metrics, or comparisons if available.
+4. Implications: Discuss the broader implications of the findings and potential applications.
+5. Limitations: Note any limitations or weaknesses identified in the study.
+6. Conclusion: Provide a brief conclusion and future work suggestions.
 
-Include:
-1. Research Problem (2-3 paragraphs)
-2. Proposed Methodology (2-3 paragraphs)
-3. Key Results and Findings (2-3 paragraphs)
-4. Main Contributions (bullet points with explanation)
-5. Limitations and Future Work (1-2 paragraphs)
+Paper content:
+{full_text[:2500]}
 
-Make it medium-length (approximately 400-500 words).
-Do not add information not present in the content.
-
-Paper Content:
-{full_text}
-"""
+Please provide a thorough, well-structured summary covering all the sections above."""
 
 
-# Prompt: 6-section academic comparison of two summaries
-def _build_comparison_prompt(summary_a: str, summary_b: str,
-                              name_a: str, name_b: str) -> str:
-    return f"""
-You are an expert academic research analyst.
-
-Below are structured summaries of two research papers.
-Analyze them carefully and produce a structured comparison report.
-
-Your comparison MUST cover all of the following sections, in order,
-using the exact section headings shown:
-
-## 1. Research Problem Comparison
-## 2. Methodology Comparison
-## 3. Results & Evaluation Comparison
-## 4. Contributions Comparison
-## 5. Limitations & Future Work
-## 6. Overall Comparison Summary
-
-Rules:
-- Base your analysis ONLY on the provided summaries.
-- Do not hallucinate or infer information not present in the summaries.
-- Be precise, academic, and analytical in tone.
-- Each section should be 2-4 paragraphs.
-
----
-### Summary of Paper A: {name_a}
-{summary_a}
-
----
-### Summary of Paper B: {name_b}
-{summary_b}
----
-"""
+# Prompt: comparison
+def _build_comparison_prompt(summary_a: str, summary_b: str, name_a: str, name_b: str) -> str:
+    return f"Compare paper A ({name_a}) vs B ({name_b}). A: {summary_a[:200]} B: {summary_b[:200]}"
 
 
 # Extract, chunk, and summarise one uploaded PDF
@@ -80,10 +48,11 @@ def _process_paper(uploaded_file) -> tuple[str, int, int]:
             f"No usable text could be extracted from '{uploaded_file.name}'."
         )
 
-    full_text = " ".join(chunk["content"] for chunk in chunks[:20])
-    summary   = generate_response(
+# Use more content from chunks for comprehensive summary
+    full_text = " ".join(chunk["content"] for chunk in chunks[:5])
+    summary = generate_response(
         _build_summary_prompt(full_text),
-        max_tokens=800,
+        max_tokens=1500,
     )
 
     return summary, len(pages), len(chunks)
@@ -107,7 +76,7 @@ def _render_meta_card(name: str, pages: int, chunks: int, badge_class: str) -> N
     """, unsafe_allow_html=True)
 
 
-# Render the full comparison result (meta cards, report, summaries, clear button)
+# Render the full comparison result
 def _render_comparison_result(result: dict) -> None:
     col_a, _, col_b = st.columns([5, 0.3, 5])
     with col_a:
@@ -139,7 +108,7 @@ def _render_comparison_result(result: dict) -> None:
         st.rerun()
 
 
-# Public entry point — called by app.py inside `with tab_compare:`
+# Public entry point
 def render_compare_tab() -> None:
     # Initialise result store
     if "cmp_result" not in st.session_state:
@@ -227,37 +196,6 @@ def render_compare_tab() -> None:
             type="primary",
         )
 
-    # Features / What's compared section to utilise space
-    st.markdown("""
-        <div style="margin-top: 3rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 2.5rem;">
-            <div style="text-align: center; margin-bottom: 2rem;">
-                <h4 style="color: var(--text-muted); font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase;">Academic Comparison Framework</h4>
-            </div>
-            <div style="display: flex; justify-content: center; gap: 4rem; flex-wrap: wrap;">
-                <div style="text-align: center; max-width: 180px; background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-                    <div style="font-size: 2rem; margin-bottom: 0.8rem;">🎯</div>
-                    <div style="font-size: 0.9rem; font-weight: 700; color: #a5b4fc; margin-bottom: 0.4rem;">Objectives</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">Compare core research problems & goals</div>
-                </div>
-                <div style="text-align: center; max-width: 180px; background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-                    <div style="font-size: 2rem; margin-bottom: 0.8rem;">⚙️</div>
-                    <div style="font-size: 0.9rem; font-weight: 700; color: #67e8f9; margin-bottom: 0.4rem;">Methodology</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">Analyze procedural & technical shifts</div>
-                </div>
-                <div style="text-align: center; max-width: 180px; background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-                    <div style="font-size: 2rem; margin-bottom: 0.8rem;">📊</div>
-                    <div style="font-size: 0.9rem; font-weight: 700; color: #818cf8; margin-bottom: 0.4rem;">Key Impact</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">Evaluate findings, results & outcomes</div>
-                </div>
-                <div style="text-align: center; max-width: 180px; background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-                    <div style="font-size: 2rem; margin-bottom: 0.8rem;">💡</div>
-                    <div style="font-size: 0.9rem; font-weight: 700; color: #c084fc; margin-bottom: 0.4rem;">Innovation</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">Identify unique academic contributions</div>
-                </div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
     st.markdown("<div style='height:2rem'></div>", unsafe_allow_html=True)
 
     # Run comparison when button is clicked
@@ -282,12 +220,12 @@ def render_compare_tab() -> None:
             with st.spinner(f"Reading and summarising **{file_b.name}**..."):
                 summary_b, pages_b, chunks_b = _process_paper(file_b)
 
-            with st.spinner("Generating structured comparison..."):
+            with st.spinner("Generating comparison..."):
                 cmp_prompt = _build_comparison_prompt(
                     summary_a, summary_b,
                     file_a.name, file_b.name,
                 )
-                comparison = generate_response(cmp_prompt, max_tokens=1200)
+                comparison = generate_response(cmp_prompt, max_tokens=150)
 
             st.session_state.cmp_result = {
                 "comparison": comparison,
@@ -309,6 +247,6 @@ def render_compare_tab() -> None:
             st.error(f"❌ An unexpected error occurred: {exc}")
             return
 
-    # Display the stored comparison result (persists across reruns)
+    # Display the stored comparison result
     if st.session_state.cmp_result:
         _render_comparison_result(st.session_state.cmp_result)
